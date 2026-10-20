@@ -1,0 +1,11 @@
+# claude stuff
+.claude/
+
+# internal development 
+.docs/
+
+# data too big for github
+data/
+
+# figure panels drawn from smoke-test data
+figures/00_test/
