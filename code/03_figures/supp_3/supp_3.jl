@@ -1,5 +1,5 @@
 # Supplementary Figure 3 — random resistance levels with a cost: α ~ Beta(1, 4) per resistance
-# mutation, cost Δs = −c(1 − α) on the birth rate, c = 0 (cost0) and c = 0.05 (cost0.05); one panel
+# mutation, cost Δs = −c(1 − α) on the birth rate, c = 0 (cost0) and c = 0.02 (cost0.02); one panel
 # per cohort (suffix).
 #   a  resistant clones over time per arm (median; while ≥ 50% of tumours run)
 #   b  Kaplan–Meier curves per arm
@@ -16,7 +16,7 @@ arm_label(a) = a == "mod_1.0" ? "Modulation at N" : ARM_NAME[a]
 counts = readproc("06_cost", "counts.csv.gz")
 km = readproc("06_cost", "km.csv")
 
-for c in ("cost0", "cost0.05")
+for c in ("cost0", "cost0.02")
     fig = panel(); ax = Axis(fig[1, 1]; xlabel = LABELS[:time], ylabel = LABELS[:resclones], LOGY...)
     for a in ARMS
         d = counts[(counts.cohort .== c) .& (counts.arm .== a), :]; nrow(d) == 0 && continue

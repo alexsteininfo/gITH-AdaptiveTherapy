@@ -9,3 +9,6 @@ data/
 
 # figure panels drawn from smoke-test data
 figures/00_test/
+
+# experiments
+universalSFS/

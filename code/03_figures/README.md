@@ -27,7 +27,7 @@ the test data (making missing test tables first) and checks that all panels are 
 | 6 Virtual trial | `fig_6/fig_6.jl` | `04_trial/trial.csv`, `trial_cor.csv`, `trial_policy.csv` | `a` correlation heatmap (110 × 95 mm), `b` gain vs best predictor, `c` \|ρ\| vs sample size, `d` policies |
 | S1 Validation | `supp_1/supp_1.jl` | `07_validation/validation_sfs.csv`, `validation_ld.csv`, `snapshots.csv` | `a`/`b` SFS vs theory (pure birth / birth–death), `c` resistant clones, `d` resistant cells |
 | S2 Metronomic | `supp_2/supp_2.jl` | `05_metronomic/*`, `01_dynamics/*` (counts, km, outcomes) | `a` mean burden, `b` resistant clones, `c` Kaplan–Meier, `d` TTP metronomic vs MTD |
-| S3 Cost of resistance | `supp_3/supp_3.jl` | `06_cost/counts.csv.gz`, `km.csv` | `a_cost0`, `a_cost0.05` resistant clones; `b_*` Kaplan–Meier; `legend` |
+| S3 Cost of resistance | `supp_3/supp_3.jl` | `06_cost/counts.csv.gz`, `km.csv` | `a_cost0`, `a_cost0.02` resistant clones; `b_*` Kaplan–Meier; `legend` |
 | S4 Hill definitions | `supp_4/supp_4.jl` | `01_dynamics/snapshots.csv` | `a` H₁, `b` ²D: normalised vs cell fraction |
 | S5 Sampling | `supp_5/supp_5.jl` | `04_trial/samples.csv`, `snapshots.csv` | `a`–`c` ρ(sample, tumour) vs n for f = 1%, 0, 5%; `d` relative error of γ̂ |
 | S6 Power law | `supp_6/supp_6.jl` | `01_dynamics/powerlaw.csv` | `a` γ̂ vs k_min with KS choice, `b` SE, `c` KS-selected k_min |

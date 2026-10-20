@@ -112,7 +112,7 @@ const BLOCKS = Dict{String,Vector{Cohort}}(
         Cohort(name, key; alpha = Beta(1, 4), cost = c, n = 300,
                arms = [arm(:single; heavy = :end), arm(:mtd; heavy = :end), arm(:hol; heavy = :end),
                        arm(:mod; heavy = :end), arm(:mod; level = 1.0, heavy = :end)])
-        for (name, key, c) in (("cost0", 11, 0.0), ("cost0.05", 12, 0.05))
+        for (name, key, c) in (("cost0", 11, 0.0), ("cost0.02", 12, 0.02))
     ],
     "07_validation" => [
         Cohort("sfs_pb", 13; nu = 0.0, alpha = 1.0, fK = 0.0, d0 = 0.0, n = 200, ndet = 10^5, arms = Arm[]),

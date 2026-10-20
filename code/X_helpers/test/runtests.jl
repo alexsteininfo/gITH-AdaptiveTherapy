@@ -29,7 +29,9 @@ runs("registry") && @testset "registry" begin
     @test length(d) == 500 && all(1e-5 .<= ν .<= 1e-3) && all(0.5 .<= getfield.(d, :fK) .<= 0.9) && all(0 .<= getfield.(d, :alpha) .<= 0.006)
     @test sort(floor.(Int, 500 .* (log10.(ν) .+ 5) ./ 2)) == 0:499
     tr = only(BLOCKS["04_trial"]); @test params(tr, 3) == params(tr, 3) && params(tr, 3).cost == 0
-    @test [c.name for c in BLOCKS["06_cost"]] == ["cost0", "cost0.05"]
+    @test [c.name for c in BLOCKS["06_cost"]] == ["cost0", "cost0.02"] && [c.cost for c in BLOCKS["06_cost"]] == [0.0, 0.02]
+    # a fully resistant clone paying the cost must be able to reach N_prog: K(1 − 2c) > N_prog
+    @test all((B0 * (1 - c.cost) - D0) / ((B0 - D0) * c.fK / c.ndet) > nprog(c.ndet, c.fK) for c in BLOCKS["06_cost"])
 end
 
 runs("schedules") && @testset "schedules" begin

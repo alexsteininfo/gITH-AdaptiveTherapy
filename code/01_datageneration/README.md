@@ -74,7 +74,7 @@ The scans are the actual object: which containment rule works best, not a copy o
 | 11 | | `nu1e-3` | $10^{-3}$ | 0 | 0.8 | 200 | same | 250 | Fig 5: frequent resistance | 8 |
 | 12 | `04_trial` | `trial` | log-uniform $10^{-5}$–$10^{-3}$ | 0–0.006 | 0.5–0.9 | 500 (Latin hypercube) | mtd, hol, mod | 250 | Fig 6: does diversity predict course and AT benefit? | 9 |
 | 13 | `05_metronomic` | `neutral`, `full` (same tumours as #1, #2) | | | 0.8 | 500 each | met | 40 / 250 | Fig 1, Supp 2 | 7 |
-| 14 | `06_cost` | `cost0`, `cost0.05` | $10^{-4}$ | Beta(1,4), min rule; cost $\Delta s=-c(1-\alpha)$ | 0.8 | 300 each | single, mtd, hol, mod, mod_1.0 | 250 | Supp 3: cost of resistance | 30 |
+| 14 | `06_cost` | `cost0`, `cost0.02` | $10^{-4}$ | Beta(1,4), min rule; cost $\Delta s=-c(1-\alpha)$, $c\in\{0, 0.02\}$ (resistant capacity $K(1-2c)$ must exceed $N_\text{prog}=0.9K$; $c=0.05$ never progresses) | 0.8 | 300 each | single, mtd, hol, mod, mod_1.0 | 250 | Supp 3: cost of resistance | 30 |
 | 15 | `07_validation` | `sfs_pb`, `sfs_bd`, `ld` | 0 / 0 / $10^{-3}$ | – / – / 0 | no competition ($d_0=0$ for `sfs_pb`) | 200 each, $N_\text{det}=10^5$ | growth only | – | Supp 1: checks vs theory | < 1 |
 
 Rows with the same parameters share tumours (same seeds): #5 ⊂ #2, #6 ⊂ #3, #13 = #1/#2. All arms
