@@ -66,7 +66,7 @@ runs("resistant Hill numbers of an empty clone set") && @testset "resistant Hill
 end
 
 runs("power-law fit with a short tail") && @testset "power-law fit with a short tail" begin   # Review Focus 3
-    f = powerlaw_fit([100, 10, 1, 0, 0, 0, 0, 0, 0, 1]; kmin = 5); @test isnan(f.gamma) && f.n == 1
+    f = powerlaw_fit([100, 10, 1, 0, 0, 0, 0, 0, 1, 0]; kmin = 5); @test isnan(f.gamma) && f.n == 1   # k = N is clonal, not tail
 end
 
 runs("restricted time of extinct arms") && @testset "restricted time of extinct arms" begin   # Review Focus 1

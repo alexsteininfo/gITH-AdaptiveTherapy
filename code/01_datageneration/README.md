@@ -20,6 +20,7 @@ bash code/01_datageneration/run_part3.sh                 # Part 3: virtual trial
 bash code/01_datageneration/run_supp.sh                  # supplement
 WORKERS=32 JULIA=/path/to/julia bash code/01_datageneration/run_part2.sh   # cluster
 TEST=1 bash code/01_datageneration/run_part1.sh          # smoke test (N_det = 10^4, 3 tumours)
+bash code/01_datageneration/run_statistics.sh [block …]  # redo snapshots/samples tables from raw data
 ```
 
 Each bash script simulates its blocks (`WORKERS` worker processes, default 12) and then runs the
