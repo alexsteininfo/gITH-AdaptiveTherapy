@@ -77,6 +77,38 @@ function run_arm(pop0, a::Arm, p, ndet, seed, t_det, ids; arm_index::Integer, ex
 end
 
 """
+    grow_tumour(c, t; block)
+
+Grow tumour `t` of cohort `c` to detection (its own seed, so the same tumour every time). Returns
+the detection population, the growth records at the sizes `c.growth_heavy` (fractions of N_det;
+`idx` = size in percent of N_det, subsample seed by position, so that adding sizes leaves the
+earlier records unchanged) and the detection record.
+"""
+function grow_tumour(c::Cohort, t::Integer; block::AbstractString)
+    seed = tumour_seed(c, t); p = params(c, t); ndet = c.ndet
+    ids = (block = String(block), cohort = c.name, tumour = Int(t))
+    pop = initialize_population(1)
+    growth = Any[]
+    if isempty(c.growth_heavy)
+        simulate!(pop, growth_block(p, ndet), Xoshiro(seed))
+    else
+        gctx = (t_det = 0.0, ids = merge(ids, (arm = "growth",)))
+        j = Ref(0)
+        acc = MeasurementAccumulator(MeasurementSpec(
+            triggers = [AtSize(round(Int, f * ndet)) for f in sort(c.growth_heavy)],
+            stats = [:heavy => q -> (j[] += 1; measure_heavy(q, gctx, derive_seed(seed, 2, 0, j[]); tag = "growth",
+                                                             idx = round(Int, 100 * popsize(q) / ndet)))]))
+        simulate!(pop, growth_block(p, ndet), Xoshiro(seed); accumulator = acc)
+        growth = [s.stats.heavy for s in finalize_measurements(acc).snapshots]
+    end
+    t_det = pop.t
+    growth = [merge(g, (t_rel = g.t_rel - t_det, B_pre = g.B, B_new = 0)) for g in growth]
+    detection = measure_heavy(pop, (t_det = t_det, ids = merge(ids, (arm = "detection",))),
+                              derive_seed(seed, 2, 0, 0); tag = "detection", idx = 0)
+    return pop, growth, detection
+end
+
+"""
     run_tumour(c, t; block, test = false, example_dir = nothing)
 
 Grow tumour `t` of cohort `c` to detection, record distributions during growth and at detection,
@@ -86,22 +118,8 @@ and run every arm. Example tumours (t ≤ N_EXAMPLES) keep clone records over ti
 function run_tumour(c::Cohort, t::Integer; block::AbstractString, test::Bool = false, example_dir = nothing)
     seed = tumour_seed(c, t); p = params(c, t); ndet = c.ndet
     ids = (block = String(block), cohort = c.name, tumour = Int(t))
-    pop = initialize_population(1)
-    growth = Any[]
-    if isempty(c.growth_heavy)
-        simulate!(pop, growth_block(p, ndet), Xoshiro(seed))
-    else
-        gctx = (t_det = 0.0, ids = merge(ids, (arm = "growth",)))
-        acc = MeasurementAccumulator(MeasurementSpec(
-            triggers = [AtSize(round(Int, f * ndet)) for f in c.growth_heavy],
-            stats = [:heavy => q -> measure_heavy(q, gctx, derive_seed(seed, 2, 0, 1); tag = "growth", idx = 0)]))
-        simulate!(pop, growth_block(p, ndet), Xoshiro(seed); accumulator = acc)
-        growth = [s.stats.heavy for s in finalize_measurements(acc).snapshots]
-    end
+    pop, growth, detection = grow_tumour(c, t; block)
     t_det = pop.t
-    growth = [merge(g, (t_rel = g.t_rel - t_det, B_pre = g.B, B_new = 0)) for g in growth]
-    detection = measure_heavy(pop, (t_det = t_det, ids = merge(ids, (arm = "detection",))),
-                              derive_seed(seed, 2, 0, 0); tag = "detection", idx = 0)
     example = t <= N_EXAMPLES
     example && example_dir !== nothing && save_population(joinpath(example_dir, @sprintf("t%04d.cepop", t)), pop)
     arms = Dict{String,Any}(a.id => run_arm(pop, a, p, ndet, seed, t_det, ids; arm_index = j, example)
@@ -168,6 +186,61 @@ function run_block(block::AbstractString; cohorts = nothing, test::Bool = false)
 end
 
 nworkers_safe() = try; Distributed.nworkers(); catch; 1; end
+
+"""
+    regrow_tumour!(path, c, t; block)
+
+Replace the growth records of the stored tumour `t` (file `path`) by those at the current sizes
+`c.growth_heavy`, regrowing it from its seed; the treatment arms are kept. The regrown detection
+record and every growth record stored before (apart from its `idx`) must equal the stored ones,
+otherwise the file is left unchanged. Returns `:done`, `:skipped` (records already present) or
+`:mismatch`.
+"""
+function regrow_tumour!(path::AbstractString, c::Cohort, t::Integer; block::AbstractString)
+    want = sort([round(Int, 100f) for f in c.growth_heavy])
+    old = jldopen(f -> (growth = f["growth"], detection = f["detection"]), path, "r")
+    sort([g.idx for g in old.growth]) == want && return :skipped
+    _, growth, detection = grow_tumour(c, t; block)
+    isequal(detection, old.detection) || return :mismatch
+    for g in old.growth
+        i = findfirst(h -> h.N == g.N, growth)
+        (i !== nothing && isequal(merge(g, (idx = growth[i].idx,)), growth[i])) || return :mismatch
+    end
+    rec = load(path)                                    # every dataset, keyed by its full path
+    rec["growth"] = growth
+    save_tumour(path, rec)
+    return :done
+end
+
+"""
+    regrow_block(block; cohorts = nothing, test = false)
+
+`regrow_tumour!` for every stored tumour of the (named) cohorts of a block with growth records,
+on the available worker processes; resumable. Throws if any tumour is not reproduced.
+"""
+function regrow_block(block::AbstractString; cohorts = nothing, test::Bool = false)
+    bname = test ? "00_test_$block" : String(block)
+    list = [c for c in BLOCKS[block] if (cohorts === nothing || c.name in cohorts) && !isempty(c.growth_heavy)]
+    bad = String[]
+    for c0 in list
+        c = test ? test_cohort(c0) : c0
+        dir = rawdir(bname, c.name)
+        todo = [t for t in 1:c.n if isfile(tumour_file(dir, t))]
+        println("[$bname/$(c.name)] regrowing $(length(todo)) of $(c.n) tumours (sizes $(c.growth_heavy) N_det) on $(max(1, nworkers_safe())) workers")
+        t_start = time()
+        res = pmap(todo) do t
+            r = regrow_tumour!(tumour_file(dir, t), c, t; block = bname)
+            println(@sprintf("[%s/%s] t%04d %s (worker %d)", bname, c.name, t, r, myid()))
+            r
+        end
+        append!(bad, ["$(c.name)/t$(lpad(t, 4, '0'))" for (t, r) in zip(todo, res) if r == :mismatch])
+        println(@sprintf("[%s/%s] %d done, %d skipped, %d not reproduced in %.1f min", bname, c.name,
+                         count(==(:done), res), count(==(:skipped), res), count(==(:mismatch), res),
+                         (time() - t_start) / 60))
+    end
+    isempty(bad) || error("not reproduced (files unchanged): ", join(bad, ", "))
+    return nothing
+end
 
 "Cohort names from the command line; `TEST=1` in the environment selects the smoke test."
 parse_args(args) = (cohorts = isempty(args) ? nothing : collect(String, args), test = get(ENV, "TEST", "0") == "1")

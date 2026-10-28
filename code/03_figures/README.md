@@ -21,7 +21,7 @@ the test data (making missing test tables first) and checks that all panels are 
 |---|---|---|---|
 | 1 Model and schedules | `fig_1/fig_1.jl` | `01_dynamics/example_traj.csv`, `example_clones.csv` | `schematic.ai/.png` (a–c, copied from BirthDeathMutation_AT.jl), `d` MTD, `e` metronomic, `f` holidays, `g` modulation, `legend` |
 | 2 One treatment round | `fig_2/fig_2.jl` | `01_dynamics/sfs_mean.csv`, `snapshots.csv` | single round, responders only, cohorts none/weak/partial/full: top row after treatment (0.1N), bottom row after regrowth (N): `a`/`d` mean SFS vs untreated, `b`/`e` passenger ᵠD treated/untreated, `c`/`f` resistant-clone ᵠD treated/untreated, `legend` |
-| 3 Holidays and modulation (neutral) | `fig_3/fig_3.jl` | `01_dynamics/snapshots.csv`, `sfs_mean.csv` | `a` S per cycle, `b` γ̂ per cycle, `c` burden B pre-existing/new under modulation with 2μN ln(1+t), `d` SFS under modulation |
+| 3 Cyclic adaptive therapy | `fig_3/fig_3.jl` | `01_dynamics/snapshots.csv`, `sfs_mean.csv` | holidays, tumours completing the first 6 cycles without progressing (exploratory, 180 mm wide): `grid_lower`/`grid_upper` passenger (top) and resistant-clone (bottom) ᵠD per cycle, treated / untreated at the same size (growth record at 0.5N, detection), per cohort, `_raw` absolute, `grid_both` both thresholds per panel (upper solid, lower dashed); `sfs` mean SFS at both thresholds of every cycle per cohort (paler = later), `sfs_compensated` k(k+1)·S_k; modulation (to be moved): `c` burden B pre-existing/new with 2μN ln(1+t), `d` SFS |
 | 4 Composition under the schedules | `fig_4/fig_4.jl` | `01_dynamics/counts.csv.gz`, `snapshots.csv`, `km.csv` | per cohort (`_full`, `_partial`): `a` resistant clones, `b` pre-existing/new, `c` resistant ²D, `d` resistant fraction, `e` Kaplan–Meier; `legend` |
 | 5 Trade-off | `fig_5/fig_5.jl` | `02_tradeoff/tradeoff.csv`, `03_sensitivity/tradeoff.csv` | `a`/`b` TTP vs resistant clones (full/partial), `c` TTP vs B, `d_hol`/`d_mod` gain vs level by N/K, `e_hol`/`e_mod` by ν, `legend` |
 | 6 Virtual trial | `fig_6/fig_6.jl` | `04_trial/trial.csv`, `trial_cor.csv`, `trial_policy.csv` | `a` correlation heatmap (110 × 95 mm), `b` gain vs best predictor, `c` \|ρ\| vs sample size, `d` policies |
@@ -31,6 +31,7 @@ the test data (making missing test tables first) and checks that all panels are 
 | S4 Hill definitions | `supp_4/supp_4.jl` | `01_dynamics/snapshots.csv` | `a` H₁, `b` ²D: normalised vs cell fraction |
 | S5 Sampling | `supp_5/supp_5.jl` | `04_trial/samples.csv`, `snapshots.csv` | `a`–`c` ρ(sample, tumour) vs n for f = 1%, 0, 5%; `d` relative error of γ̂ |
 | S6 Power law | `supp_6/supp_6.jl` | `01_dynamics/powerlaw.csv` | `a` γ̂ vs k_min with KS choice, `b` SE, `c` KS-selected k_min |
+| S7 Depth of treatment | `supp_7/supp_7.jl` | `01_dynamics/sfs_mean.csv` | `a` mean SFS after regrowth from 0.5N (first holiday cycle) vs untreated, as Fig 2D; compensated SFS k(k+1)·S_k: `b`/`c` of Fig 2A/2D, `d` of `a`; `legend` |
 
 Conventions: time in cell cycles (≈ 4 days) since detection; schedule colours from ColorBrewer
 Paired (MTD red, holidays blue, modulation green, metronomic purple, single round orange);

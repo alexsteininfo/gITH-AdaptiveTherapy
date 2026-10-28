@@ -195,6 +195,19 @@ runs("resume skips finished, redoes partial") && @testset "resume skips finished
     rm(joinpath(ROOT, "data", "raw", "00_test_01_dynamics"); recursive = true)
 end
 
+runs("regrowth adds growth records") && @testset "regrowth adds growth records" begin
+    c = test_cohort(only(filter(c -> c.name == "full", BLOCKS["01_dynamics"])))
+    old = Cohort(c.name, c.key, c.nu, c.alpha, c.fK, c.cost, c.d0, c.n, Arm[], c.ndet, [0.1])   # stored with 0.1 N_det only
+    dir = mktempdir(); p1 = tumour_file(dir, 1); p2 = tumour_file(dir, 2)
+    save_tumour(p1, run_tumour(old, 1; block = "00_test_01_dynamics")); cp(p1, p2)
+    @test regrow_tumour!(p1, c, 1; block = "00_test_01_dynamics") == :done
+    g = load(p1, "growth")
+    @test [x.idx for x in g] == [10, 50] && [x.N for x in g] == [c.ndet ÷ 10, c.ndet ÷ 2]
+    @test regrow_tumour!(p1, c, 1; block = "00_test_01_dynamics") == :skipped
+    m = mtime(p2)                                       # tumour 1's file regrown as tumour 2: another tumour
+    @test regrow_tumour!(p2, c, 2; block = "00_test_01_dynamics") == :mismatch && mtime(p2) == m
+end
+
 runs("processing on test data") && @testset "processing on test data" begin
     b = "00_test_01_dynamics"; clean_test(b)
     run_block("01_dynamics"; cohorts = ["neutral", "full", "weak"], test = true)
@@ -206,6 +219,7 @@ runs("processing on test data") && @testset "processing on test data" begin
     cnt = CSV.read(joinpath(procdir(b), "counts.csv.gz"), DataFrame); @test issubset(["t_rel", "N", "n_res", "res_new"], names(cnt))
     s = CSV.read(joinpath(procdir(b), "snapshots.csv"), DataFrame)
     @test Set(s.tag) ⊇ Set(["growth", "detection", "blockend", "end"]) && issubset(["res_D0", "S", "D2n", "gamma", "var_burden"], names(s))
+    @test Set(s.idx[s.tag .== "growth"]) == Set([10, 50])
     sm = CSV.read(joinpath(procdir(b), "samples.csv"), DataFrame)
     @test all(sm.n .<= sm.N) && Set(sm.fmin) == Set(FMIN)
     statistics_block(b; kmin_frac = 0.05, suffix = "_kmin0.05")

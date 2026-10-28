@@ -63,6 +63,10 @@ const LS_PRED = :dot
 const COL_COHORT = Dict(c => Makie.to_color(h) for (c, h) in ("neutral" => "#e08214", "weak" => "#d7191c",
                                                                "partial" => "#7b3294", "full" => "#2c7bb6"))
 const COHORT_NAME = Dict("neutral" => "No resistance", "weak" => "Weak", "partial" => "Partial", "full" => "Full")
+# SFS lines per cohort, drawn in this order: thick to thin, so that overlapping curves stay visible
+const LINE_UNTREATED = (color = (COL_ARM["untreated"], 0.6), linewidth = 3.0)
+const LINE_COHORT = Dict("neutral" => (linestyle = :solid, linewidth = 1.8), "weak" => (linestyle = :dash, linewidth = 1.4),
+                         "partial" => (linestyle = :dot, linewidth = 1.2), "full" => (linestyle = :dashdot, linewidth = 1.0))
 
 # burden split (Stein & Werner 2025: pre-existing orange, new green, total blue)
 const COL_PRE = PAIRED[8]

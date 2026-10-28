@@ -21,12 +21,21 @@ bash code/01_datageneration/run_supp.sh                  # supplement
 WORKERS=32 JULIA=/path/to/julia bash code/01_datageneration/run_part2.sh   # cluster
 TEST=1 bash code/01_datageneration/run_part1.sh          # smoke test (N_det = 10^4, 3 tumours)
 bash code/01_datageneration/run_statistics.sh [block …]  # redo snapshots/samples tables from raw data
+bash code/01_datageneration/run_part1_growth.sh          # add untreated records at 0.5 N_det to a finished Part 1
 ```
 
 Each bash script simulates its blocks (`WORKERS` worker processes, default 12) and then runs the
 processing of those blocks (`code/02_processing/`), logging to `data/raw/logs/`. Runs are
 resumable (finished tumours are skipped); cohort names can be passed to run a subset. Figures are
 made interactively from `data/processed/` (`code/03_figures/`).
+
+**Untreated records during growth.** Block `01_dynamics` stores the untreated tumour at 0.1 and
+0.5 $N_\text{det}$ (`growth_heavy`; snapshot `tag = growth`, `idx` = size in percent of
+$N_\text{det}$), the baselines of the treated tumour at the same size (Figs 2, 3). Runs made before
+the 0.5 $N_\text{det}$ record was added are completed by `run_part1_growth.sh`: it regrows every
+tumour from its seed (`01_dynamics_growth.jl`), checks that the detection and 0.1 $N_\text{det}$
+records are reproduced exactly, replaces the growth records in the tumour files (arms untouched;
+fails listing the tumours otherwise) and recomputes `snapshots.csv`, `samples.csv` and `sfs_mean.csv`.
 
 ## Model (all cohorts unless stated)
 

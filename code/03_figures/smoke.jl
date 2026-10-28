@@ -19,7 +19,7 @@ const PS = "run_supp.sh" => ["00_test_01_dynamics/example_traj.csv", "00_test_01
 const FIGURES = [
     "fig_1" => (["schematic", "d", "e", "f", "g", "legend"], [P1, PS]),
     "fig_2" => (["a", "b", "c", "d", "e", "f", "legend"], [P1]),
-    "fig_3" => (["a", "b", "c", "d"], [P1]),
+    "fig_3" => (["grid_lower", "grid_upper", "grid_lower_raw", "grid_upper_raw", "grid_both", "sfs", "sfs_compensated", "c", "d"], [P1]),
     "fig_4" => ([["$(p)_$(c)" for c in ("full", "partial") for p in ("a", "b", "c", "d", "e")]; "legend"], [P1]),
     "fig_5" => (["a", "b", "c", "d_hol", "d_mod", "e_hol", "e_mod", "legend"], [P2]),
     "fig_6" => (["a", "b", "c", "d"], [P1, P3]),
@@ -29,6 +29,7 @@ const FIGURES = [
     "supp_4" => (["a", "b"], [P1]),
     "supp_5" => (["a", "b", "c", "d"], [P3]),
     "supp_6" => (["a", "b", "c"], [PS]),
+    "supp_7" => (["a", "b", "c", "d", "legend"], [P1]),
 ]
 
 selected = [f for f in FIGURES if occursin(Regex(FILTER), first(f))]

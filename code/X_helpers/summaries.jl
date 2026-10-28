@@ -21,6 +21,9 @@ function _sfs_tumour(path)
             heavy = f["arms/$id/heavy"]
             # single round: only tumours that respond (first block ends at 0.1 N_det)
             id == "single" && !any(r -> r.tag == "blockend" && r.idx == 1 && r.tree.N <= ndet / 10, heavy) && continue
+            # holidays: only tumours that do not progress within the stored blocks (a block that
+            # ends in progression ends above N_det, not at a threshold)
+            startswith(id, "hol") && any(r -> r.tag == "blockend" && r.tree.N > ndet, heavy) && continue
             append!(recs, heavy)
         end
         for r in recs

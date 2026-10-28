@@ -83,11 +83,11 @@ part1_arms(tmax) = [arm(:single; tmax), arm(:mtd; tmax), arm(:hol; tmax), arm(:m
 
 const BLOCKS = Dict{String,Vector{Cohort}}(
     "01_dynamics" => [
-        Cohort("neutral", 1; nu = 0.0, alpha = 1.0, n = 500, growth_heavy = [0.1],
+        Cohort("neutral", 1; nu = 0.0, alpha = 1.0, n = 500, growth_heavy = [0.1, 0.5],
                arms = [arm(:single; tmax = 40.0), arm(:hol; tmax = 40.0), arm(:mod; tmax = 40.0)]),
-        Cohort("full", 2; alpha = 0.0, n = 500, growth_heavy = [0.1], arms = part1_arms(TMAX)),
-        Cohort("partial", 3; alpha = 0.006, n = 500, growth_heavy = [0.1], arms = part1_arms(TMAX)),
-        Cohort("weak", 4; alpha = 0.8, n = 500, growth_heavy = [0.1], arms = part1_arms(60.0)),
+        Cohort("full", 2; alpha = 0.0, n = 500, growth_heavy = [0.1, 0.5], arms = part1_arms(TMAX)),
+        Cohort("partial", 3; alpha = 0.006, n = 500, growth_heavy = [0.1, 0.5], arms = part1_arms(TMAX)),
+        Cohort("weak", 4; alpha = 0.8, n = 500, growth_heavy = [0.1, 0.5], arms = part1_arms(60.0)),
     ],
     "02_tradeoff" => [
         Cohort("full", 2; alpha = 0.0, n = 300, arms = scan_arms()),
