@@ -16,7 +16,13 @@ function _sfs_tumour(path)
     out = Dict{Tuple{String,String,String,Int},NamedTuple}()
     jldopen(path, "r") do f
         recs = Any[f["growth"]...; f["detection"]]
-        for id in arm_ids(f); append!(recs, f["arms/$id/heavy"]); end
+        ndet = f["detection"].tree.N
+        for id in arm_ids(f)
+            heavy = f["arms/$id/heavy"]
+            # single round: only tumours that respond (first block ends at 0.1 N_det)
+            id == "single" && !any(r -> r.tag == "blockend" && r.idx == 1 && r.tree.N <= ndet / 10, heavy) && continue
+            append!(recs, heavy)
+        end
         for r in recs
             lb = logbin(expand_counts(r.tree.sfs, r.tree.N))
             out[(r.cohort, r.arm, r.tag, r.idx)] = lb

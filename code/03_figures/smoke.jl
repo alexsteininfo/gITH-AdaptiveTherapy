@@ -18,7 +18,7 @@ const PS = "run_supp.sh" => ["00_test_01_dynamics/example_traj.csv", "00_test_01
 # figure => (panels it must write, test tables it reads: bash script => files)
 const FIGURES = [
     "fig_1" => (["schematic", "d", "e", "f", "g", "legend"], [P1, PS]),
-    "fig_2" => (["a", "b", "c", "d", "e"], [P1]),
+    "fig_2" => (["a", "b", "c", "d", "e", "f", "legend"], [P1]),
     "fig_3" => (["a", "b", "c", "d"], [P1]),
     "fig_4" => ([["$(p)_$(c)" for c in ("full", "partial") for p in ("a", "b", "c", "d", "e")]; "legend"], [P1]),
     "fig_5" => (["a", "b", "c", "d_hol", "d_mod", "e_hol", "e_mod", "legend"], [P2]),

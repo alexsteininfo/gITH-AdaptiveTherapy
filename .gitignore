@@ -3,6 +3,7 @@
 
 # internal development 
 .docs/
+AI/
 
 # data too big for github
 data/
@@ -12,3 +13,7 @@ figures/00_test/
 
 # experiments
 universalSFS/
+
+# R files
+.DS_Store
+

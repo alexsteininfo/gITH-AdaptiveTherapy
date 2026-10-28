@@ -20,7 +20,7 @@ the test data (making missing test tables first) and checks that all panels are 
 | figure | script | tables (`data/processed/…`) | panels |
 |---|---|---|---|
 | 1 Model and schedules | `fig_1/fig_1.jl` | `01_dynamics/example_traj.csv`, `example_clones.csv` | `schematic.ai/.png` (a–c, copied from BirthDeathMutation_AT.jl), `d` MTD, `e` metronomic, `f` holidays, `g` modulation, `legend` |
-| 2 One treatment round | `fig_2/fig_2.jl` | `01_dynamics/sfs_mean.csv`, `snapshots.csv` | `a` mean SFS untreated/treated at 0.1N and N (neutral), `b`/`c` passenger ᵠD treated/untreated (neutral/weak), `d` resistant ᵠD, `e` largest resistant clone (weak) |
+| 2 One treatment round | `fig_2/fig_2.jl` | `01_dynamics/sfs_mean.csv`, `snapshots.csv` | single round, responders only, cohorts none/weak/partial/full: top row after treatment (0.1N), bottom row after regrowth (N): `a`/`d` mean SFS vs untreated, `b`/`e` passenger ᵠD treated/untreated, `c`/`f` resistant-clone ᵠD treated/untreated, `legend` |
 | 3 Holidays and modulation (neutral) | `fig_3/fig_3.jl` | `01_dynamics/snapshots.csv`, `sfs_mean.csv` | `a` S per cycle, `b` γ̂ per cycle, `c` burden B pre-existing/new under modulation with 2μN ln(1+t), `d` SFS under modulation |
 | 4 Composition under the schedules | `fig_4/fig_4.jl` | `01_dynamics/counts.csv.gz`, `snapshots.csv`, `km.csv` | per cohort (`_full`, `_partial`): `a` resistant clones, `b` pre-existing/new, `c` resistant ²D, `d` resistant fraction, `e` Kaplan–Meier; `legend` |
 | 5 Trade-off | `fig_5/fig_5.jl` | `02_tradeoff/tradeoff.csv`, `03_sensitivity/tradeoff.csv` | `a`/`b` TTP vs resistant clones (full/partial), `c` TTP vs B, `d_hol`/`d_mod` gain vs level by N/K, `e_hol`/`e_mod` by ν, `legend` |

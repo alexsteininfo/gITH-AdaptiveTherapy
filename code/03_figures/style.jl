@@ -59,10 +59,10 @@ const COL_MEAN = PAIRED[2]      # average of simulations
 const COL_PRED = :black         # prediction, dotted
 const LS_PRED = :dot
 
-# untreated (blue) and treated (orange) at the matched sizes 0.1 N_det and N_det
-const COL_STATE = Dict("growth" => PAIRED[1], "detection" => PAIRED[2], "bottom" => PAIRED[7], "regrown" => PAIRED[8])
-const STATE_NAME = Dict("growth" => "Untreated, 0.1N", "detection" => "Untreated, N",
-                        "bottom" => "Treated, 0.1N", "regrown" => "Treated, N")
+# resistance cohorts (none → full; checked for colour-vision deficiency); untreated in COL_ARM
+const COL_COHORT = Dict(c => Makie.to_color(h) for (c, h) in ("neutral" => "#e08214", "weak" => "#d7191c",
+                                                               "partial" => "#7b3294", "full" => "#2c7bb6"))
+const COHORT_NAME = Dict("neutral" => "No resistance", "weak" => "Weak", "partial" => "Partial", "full" => "Full")
 
 # burden split (Stein & Werner 2025: pre-existing orange, new green, total blue)
 const COL_PRE = PAIRED[8]
