@@ -117,6 +117,10 @@ function logformat(vs)
     return pow ? [rich("10", superscript(string(round(Int, log10(v))))) for v in vs] : [ticklabel(v) for v in vs]
 end
 
+"Ticks of a log axis spanning about a decade: 1, 2, 3, 4, 5, 7 per decade."
+fineticks(lo, hi) = [m * 10.0^e for e in floor(Int, log10(lo)):ceil(Int, log10(hi)) for m in (1, 2, 3, 4, 5, 7)
+                     if lo <= m * 10.0^e <= hi]
+
 const LOGX = (xscale = log10, xticks = logticks, xtickformat = logformat)
 const LOGY = (yscale = log10, yticks = logticks, ytickformat = logformat)
 

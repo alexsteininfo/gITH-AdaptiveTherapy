@@ -195,6 +195,22 @@ runs("resume skips finished, redoes partial") && @testset "resume skips finished
     rm(joinpath(ROOT, "data", "raw", "00_test_01_dynamics"); recursive = true)
 end
 
+runs("theory") && @testset "theory" begin
+    p = cyclic_path(; ndet = 10^4, fK = 0.8, level = 0.5, ncycles = 2)
+    @test path_N(p, path_time(p, 0, "upper")) ≈ 10^4 && path_N(p, path_time(p, 2, "lower")) ≈ 5000 &&
+          path_N(p, path_time(p, 2, "upper")) ≈ 10^4 && path_N(p, path_growth_time(p, 5000)) ≈ 5000
+    t = path_time(p, 2, "upper"); lo, hi = fine_bins(10^4)
+    lw, hw = fine_bins(10^6)                                             # no truncation at N
+    C = sfs_master(p, t, lw, hw; s0 = 0.0, s1 = t)
+    @test sum(C .* (lw .+ hw) ./ 2) ≈ 2MU * 10^4 * t rtol = 0.01        # mean burden 2μ∫b for any trajectory
+    h = sfs_harmonic(p, t, lo, hi)
+    @test sum(h.C) ≈ 2MU * h.N_harm * log(1 + h.b_eff * h.tau) rtol = 0.01
+    @test sum(h.C) ≈ sum(sfs_master(p, t, lo, hi; s0 = path_time(p, 0, "upper"), s1 = t)) rtol = 0.15
+    r = logbin_ranges(1000); @test r.k ≈ logbin(ones(1000)).k && r.lo[1] == 1 && r.hi[end] == 1000
+    q = cyclic_path(; ndet = 10^4, fK = 0.8, level = 0.1, ncycles = 1)          # single round
+    @test path_N(q, path_time(q, 1, "lower")) ≈ 1000 && path_N(q, path_time(q, 1, "upper")) ≈ 10^4
+end
+
 runs("regrowth adds growth records") && @testset "regrowth adds growth records" begin
     c = test_cohort(only(filter(c -> c.name == "full", BLOCKS["01_dynamics"])))
     old = Cohort(c.name, c.key, c.nu, c.alpha, c.fK, c.cost, c.d0, c.n, Arm[], c.ndet, [0.1])   # stored with 0.1 N_det only

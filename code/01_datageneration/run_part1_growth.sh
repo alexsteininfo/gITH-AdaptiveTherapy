@@ -7,4 +7,5 @@ source "$(dirname "$0")/common.sh"
 "$JULIA" -p "$WORKERS" --project=. code/01_datageneration/01_dynamics_growth.jl "$@"
 "$JULIA" -p "$WORKERS" --project=. code/02_processing/02_statistics.jl "$(pblock 01_dynamics)"
 summarise 03_sfs.jl 01_dynamics
+summarise 09_theory.jl 01_dynamics
 echo "# done $(date)"

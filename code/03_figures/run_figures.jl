@@ -5,7 +5,7 @@ const ROOT = normpath(joinpath(@__DIR__, "..", ".."))
 const FILTER = isempty(ARGS) ? "" : ARGS[1]
 get(ENV, "FIG_DATA", "") == "test" && error("FIG_DATA=test is set; use smoke.jl for the test data")
 
-names = sort([d for d in readdir(@__DIR__) if occursin(r"^(fig|supp)_\d+$", d) && occursin(Regex(FILTER), d)])
+names = sort([d for d in readdir(@__DIR__) if occursin(r"^((fig|supp)_\d+|stabilising)$", d) && occursin(Regex(FILTER), d)])
 failed = String[]
 for name in names
     script = joinpath(@__DIR__, name, "$name.jl")

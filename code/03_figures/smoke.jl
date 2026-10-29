@@ -8,7 +8,8 @@ ENV["FIG_DATA"] = "test"
 const ROOT = normpath(joinpath(@__DIR__, "..", ".."))
 const FILTER = isempty(ARGS) ? "" : ARGS[1]
 
-const P1 = "run_part1.sh" => ["00_test_01_dynamics/sfs_mean.csv", "00_test_01_dynamics/km.csv"]
+const P1 = "run_part1.sh" => ["00_test_01_dynamics/sfs_mean.csv", "00_test_01_dynamics/km.csv",
+                             "00_test_01_dynamics/theory_hill.csv", "00_test_01_dynamics/theory_single_sfs.csv"]
 const P2 = "run_part2.sh" => ["00_test_02_tradeoff/tradeoff.csv", "00_test_03_sensitivity/tradeoff.csv"]
 const P3 = "run_part3.sh" => ["00_test_04_trial/trial_cor.csv", "00_test_04_trial/trial_policy.csv"]
 const PS = "run_supp.sh" => ["00_test_01_dynamics/example_traj.csv", "00_test_01_dynamics/powerlaw.csv",
@@ -18,8 +19,8 @@ const PS = "run_supp.sh" => ["00_test_01_dynamics/example_traj.csv", "00_test_01
 # figure => (panels it must write, test tables it reads: bash script => files)
 const FIGURES = [
     "fig_1" => (["schematic", "d", "e", "f", "g", "legend"], [P1, PS]),
-    "fig_2" => (["a", "b", "c", "d", "e", "f", "legend"], [P1]),
-    "fig_3" => (["grid_lower", "grid_upper", "grid_lower_raw", "grid_upper_raw", "grid_both", "sfs", "sfs_compensated", "c", "d"], [P1]),
+    "fig_2" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
+    "fig_3" => (["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "legend", "legend_sfs"], [P1]),
     "fig_4" => ([["$(p)_$(c)" for c in ("full", "partial") for p in ("a", "b", "c", "d", "e")]; "legend"], [P1]),
     "fig_5" => (["a", "b", "c", "d_hol", "d_mod", "e_hol", "e_mod", "legend"], [P2]),
     "fig_6" => (["a", "b", "c", "d"], [P1, P3]),
@@ -29,7 +30,10 @@ const FIGURES = [
     "supp_4" => (["a", "b"], [P1]),
     "supp_5" => (["a", "b", "c", "d"], [P3]),
     "supp_6" => (["a", "b", "c"], [PS]),
-    "supp_7" => (["a", "b", "c", "d", "legend"], [P1]),
+    "supp_7" => (["a", "b", "legend"], [P1]),
+    "supp_8" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
+    "supp_9" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
+    "stabilising" => (["a", "b"], [P1]),
 ]
 
 selected = [f for f in FIGURES if occursin(Regex(FILTER), first(f))]

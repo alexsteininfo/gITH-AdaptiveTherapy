@@ -116,15 +116,20 @@ Geometric bins of y[k], k = 1…: fixed edges 10^(i/per_decade) (the same for ev
 spectra of different populations can be averaged bin by bin); mean y per integer k in each bin.
 """
 function logbin(y::AbstractVector{<:Real}; per_decade::Integer = 8)
-    K = length(y)
+    r = logbin_ranges(length(y); per_decade)
+    return (k = r.k, S = [sum(@view y[lo:hi]) / (hi - lo + 1) for (lo, hi) in zip(r.lo, r.hi)])
+end
+
+"Bins `lo:hi` and their centres `k` (geometric mean) of `logbin` for k = 1…K."
+function logbin_ranges(K::Integer; per_decade::Integer = 8)
     edges = unique(round.(Int, 10 .^ (0:1/per_decade:log10(K) + 1/per_decade)))
-    ks = Float64[]; Ss = Float64[]
+    lo = Int[]; hi = Int[]
     for i in 1:length(edges) - 1
-        lo, hi = edges[i], min(edges[i + 1] - 1, K)
-        lo > hi && continue
-        push!(ks, sqrt(lo * hi)); push!(Ss, sum(@view y[lo:hi]) / (hi - lo + 1))
+        a, z = edges[i], min(edges[i + 1] - 1, K)
+        a > z && continue
+        push!(lo, a); push!(hi, z)
     end
-    return (k = ks, S = Ss)
+    return (lo = lo, hi = hi, k = sqrt.(lo .* hi))
 end
 
 "Median paired difference y − x, 95% bootstrap CI and Wilcoxon signed-rank p (missing pairs dropped)."
