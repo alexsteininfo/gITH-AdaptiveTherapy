@@ -85,7 +85,7 @@ at `threshold`: median and interquartile range per cohort, theory (neutral model
 """
 function hill_panel(d, col, threshold; cohorts, qlabel, source, lims, theory)
     fig = panel()
-    ylabel = rich(superscript(qlabel), "𝐷", subscript(source), " (Treated/Untreated)")
+    ylabel = rich("Fold change in ", superscript(qlabel), "𝐷", subscript(source))
     first = threshold == "lower" ? 1 : 0                 # the lower threshold has no cycle 0
     ax = Axis(fig[1, 1]; xlabel = LABELS[:cycle], ylabel, xticks = first:NCYCLES, LOGY...)
     hlines!(ax, [1.0]; LINE_UNTREATED...)

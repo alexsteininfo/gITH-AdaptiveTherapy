@@ -11,19 +11,23 @@ const FILTER = isempty(ARGS) ? "" : ARGS[1]
 const P1 = "run_part1.sh" => ["00_test_01_dynamics/sfs_mean.csv", "00_test_01_dynamics/km.csv",
                              "00_test_01_dynamics/theory_hill.csv", "00_test_01_dynamics/theory_single_sfs.csv"]
 const P2 = "run_part2.sh" => ["00_test_02_tradeoff/tradeoff.csv", "00_test_03_sensitivity/tradeoff.csv"]
-const P3 = "run_part3.sh" => ["00_test_04_trial/trial_cor.csv", "00_test_04_trial/trial_policy.csv"]
+const P3 = "run_part3.sh" => ["00_test_04_trial/trial_cor.csv", "00_test_04_trial/trial_policy.csv",
+                             "00_test_04_trial/trial_prcc.csv"]
 const PS = "run_supp.sh" => ["00_test_01_dynamics/example_traj.csv", "00_test_01_dynamics/powerlaw.csv",
                              "00_test_05_metronomic/km.csv", "00_test_06_cost/km.csv",
                              "00_test_07_validation/validation_ld.csv"]
+const P8 = "run_stabilising.sh" => ["00_test_08_stabilising/sfs_mean.csv", "00_test_08_stabilising/counts.csv.gz",
+                                    "00_test_08_stabilising/theory_stab_hill.csv", "00_test_08_stabilising/theory_stab_levels.csv"]
 
 # figure => (panels it must write, test tables it reads: bash script => files)
 const FIGURES = [
     "fig_1" => (["schematic", "d", "e", "f", "g", "legend"], [P1, PS]),
     "fig_2" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
     "fig_3" => (["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "legend", "legend_sfs"], [P1]),
-    "fig_4" => ([["$(p)_$(c)" for c in ("full", "partial") for p in ("a", "b", "c", "d", "e")]; "legend"], [P1]),
-    "fig_5" => (["a", "b", "c", "d_hol", "d_mod", "e_hol", "e_mod", "legend"], [P2]),
-    "fig_6" => (["a", "b", "c", "d"], [P1, P3]),
+    "fig_4" => (["a", "b", "c_tmin", "c_smin", "d_sfs", "d", "e", "f", "g", "h", "i", "f_size", "g_size", "h_size", "i_size",
+                 "j", "k", "l", "m", "dose", "legend", "legend_levels", "legend_sfs"], [P8]),
+    "fig_5" => (["b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l_mtd", "l_hol", "l_mod", "l_fc_hol", "l_fc_mod",
+                 "legend"], [P3]),
     "supp_1" => (["a", "b", "c", "d"], [PS]),
     "supp_2" => (["a", "b", "c", "d"], [P1, PS]),
     "supp_3" => (["a_cost0", "b_cost0", "a_cost0.02", "b_cost0.02", "legend"], [PS]),
@@ -33,7 +37,9 @@ const FIGURES = [
     "supp_7" => (["a", "b", "legend"], [P1]),
     "supp_8" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
     "supp_9" => (["a", "b", "c", "d", "e", "f", "g", "h", "legend"], [P1]),
-    "stabilising" => (["a", "b"], [P1]),
+    "supp_10" => (["a", "b", "c", "d", "legend"], [P8]),
+    "supp_11" => (["a", "b", "c", "d_hol", "d_mod", "e_hol", "e_mod", "legend"], [P2]),
+    "supp_12" => (["a", "b", "c", "d"], [P1, P3]),
 ]
 
 selected = [f for f in FIGURES if occursin(Regex(FILTER), first(f))]

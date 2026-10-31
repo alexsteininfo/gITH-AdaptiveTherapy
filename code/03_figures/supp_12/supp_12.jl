@@ -1,5 +1,5 @@
-# Figure 6 — does heterogeneity at diagnosis predict the course and the benefit of adaptive therapy?
-# Virtual trial: per-patient ν, α and N_det/K; every patient treated with MTD, holidays and
+# Supplementary Figure 12 — does heterogeneity at diagnosis predict the course and the benefit of
+# adaptive therapy? Virtual trial: per-patient ν, α and N_det/K; every patient treated with MTD, holidays and
 # modulation. Measured statistics come from a sample of 1000 cells (mutations in ≥ 1% of the
 # sample); oracle statistics (*) from the entire tumour and not measurable.
 #   a  Spearman ρ of each statistic with the time to progression per arm and with the gain of
@@ -12,10 +12,10 @@
 #      cumulative dose; always MTD / holidays / modulation (coloured) and "adaptive if statistic
 #      below (above) a threshold, else MTD" (grey)
 # Data: 04_trial/trial.csv, trial_cor.csv, trial_policy.csv
-# Run : julia --project=. code/03_figures/fig_6/fig_6.jl
+# Run : julia --project=. code/03_figures/supp_12/supp_12.jl
 include(joinpath(@__DIR__, "..", "style.jl"))
 
-const NAME = "fig_6"
+const NAME = "supp_12"
 const STATS = ["S", "D2n", "H1n", "gamma", "mean_burden", "var_burden"]
 const ORACLE = ["det_res_frac", "det_n_res", "det_largest"]
 const STAT_NAME = Dict("S" => "Mutations, S", "D2n" => "Diversity, ²D", "H1n" => "Entropy, H₁",

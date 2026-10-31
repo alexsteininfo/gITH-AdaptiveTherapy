@@ -1,75 +1,107 @@
-# Figure 5 — the competition–diversity trade-off. Each schedule is scanned over its containment
-# level (holidays: lower threshold 0.5–0.9 N_det; modulation: stable size 0.5–1.0 N_det); points
-# get darker with the level; MTD is the single reference point. Time to progression = restricted
-# mean up to the follow-up (Kaplan–Meier).
-#   a  time to progression vs resistant clones at the end of follow-up (median, IQR), full resistance
-#   b  same, partial resistance
-#   c  time to progression vs total mutational burden B at the end (∝ risk of resistance to a
-#      second drug), full resistance
-#   d_hol, d_mod  paired gain in time to progression vs MTD (median, 95% CI) by level, for
-#      N_det/K = 0.5, 0.7, 0.8, 0.9
-#   e_hol, e_mod  same for ν = 10⁻⁵, 10⁻⁴, 10⁻³
-#   legend  schedules
-# Data: 02_tradeoff/tradeoff.csv, 03_sensitivity/tradeoff.csv
+# Figure 5 — virtual trial: adaptive therapy trades time to progression for genetic diversity.
+# 500 virtual patients (Latin hypercube over ν, α and N_det/K); the tumour of every patient is
+# treated with MTD, holidays and modulation (paired arms, each patient their own control).
+#   a     trial design: schematic, drawn in Illustrator (not made here)
+#   b     Kaplan–Meier curves per arm; median time to progression in the legend
+#   c–f   per patient: gain in time to progression (AT − MTD) vs fold change of the passenger
+#         diversity ᵠD_SFS at progression (AT / MTD; q = 0, 1, 2, ∞), holidays and modulation;
+#         large markers: medians
+#   g–j   same for the diversity of resistant clones ᵠD_CSD
+#   k     partial rank correlation (PRCC) of the parameters with time to progression and gain
+#   l_<arm>     PRCC of the parameters with ᵠD at progression under MTD, holidays, modulation
+#   l_fc_<arm>  PRCC with the fold change of ᵠD (holidays / modulation vs MTD)
+#   legend  arms
+# Data: 04_trial/trial.csv, trial_km.csv, trial_prcc.csv
 # Run : julia --project=. code/03_figures/fig_5/fig_5.jl
 include(joinpath(@__DIR__, "..", "style.jl"))
 
 const NAME = "fig_5"
-const KINDS = ["hol", "mod"]
+const ARMS = ["mtd", "hol", "mod"]
+const AT = ["hol", "mod"]
+const SFS_STATS = ["S", "D1n", "D2n", "Dinfn"]
+const CSD_STATS = ["res_D0", "res_D1", "res_D2", "res_Dinf"]
+const PARAMS = ["log10_nu", "alpha", "fK"]
+const PARAM_NAME = Dict("log10_nu" => "ν", "alpha" => "α", "fK" => rich("𝑁", subscript("det"), "/𝐾"))
 
-tr = vcat(readproc("02_tradeoff", "tradeoff.csv"), readproc("03_sensitivity", "tradeoff.csv"); cols = :union)
+pat = readproc("04_trial", "trial.csv")
+km = readproc("04_trial", "trial_km.csv")
+prcc = readproc("04_trial", "trial_prcc.csv")
 
-# ── a–c: trade-off curves ─────────────────────────────────────────────────────
-function tradeoff_panel(cohort, y, lo, hi; ylabel)
-    d = tr[tr.cohort .== cohort, :]
-    fig = panel(); ax = Axis(fig[1, 1]; xlabel = LABELS[:ttp], ylabel)
-    for kind in KINDS
-        g = sort(d[d.kind .== kind, :], :level); nrow(g) == 0 && continue
-        cols = shades(COL_ARM[kind], nrow(g))
-        lines!(ax, g.ttp_rmst, g[!, y]; color = COL_ARM[kind])
-        errorbars!(ax, g.ttp_rmst, g[!, y], g[!, y] .- g[!, lo], g[!, hi] .- g[!, y]; color = cols)
-        scatter!(ax, g.ttp_rmst, g[!, y]; color = cols, strokecolor = COL_ARM[kind], strokewidth = 0.5)
+hill_label(q, source) = rich(superscript(q), "𝐷", subscript(source))
+
+# ── b: Kaplan–Meier ───────────────────────────────────────────────────────────
+"Median of a Kaplan–Meier table (first time with S ≤ ½); NaN if never reached."
+km_med(d) = (i = findfirst(<=(0.5), d.S); i === nothing ? NaN : d.t[i])
+
+fig = panel(); ax = Axis(fig[1, 1]; xlabel = LABELS[:time], ylabel = LABELS[:pfs])
+for a in ARMS
+    d = sort(km[km.arm .== a, :], :t); nrow(d) == 0 && continue
+    kmcurve!(ax, d; color = COL_ARM[a], label = "$(ARM_NAME[a]) ($(round(km_med(d); digits = 1)))")
+end
+xlims!(ax, 0, maximum(pat.ttp_mod) * 1.05); ylims!(ax, 0, 1.02)
+axislegend(ax; position = :rt)
+savepanel(fig, NAME, "b")
+
+# ── c–j: gain vs fold change of diversity at progression ─────────────────────
+function tradeoff_panel(stat, q, source)
+    fig = panel()
+    ax = Axis(fig[1, 1]; xlabel = LABELS[:gain], ylabel = rich("Fold change in ", hill_label(q, source)))
+    hlines!(ax, [1.0]; color = :grey70, linestyle = :dot, linewidth = 0.8)
+    vlines!(ax, [0.0]; color = :grey70, linestyle = :dot, linewidth = 0.8)
+    for a in AT
+        x = Float64.(pat[!, "benefit_$a"]); y = Float64.(pat[!, "fc_$(stat)_$a"])
+        ok = isfinite.(x) .& isfinite.(y) .& (y .> 0); any(ok) || continue
+        scatter!(ax, x[ok], y[ok]; color = (COL_ARM[a], 0.35), markersize = 2.5)
     end
-    m = d[d.kind .== "mtd", :]
-    if nrow(m) > 0
-        errorbars!(ax, m.ttp_rmst, m[!, y], m[!, y] .- m[!, lo], m[!, hi] .- m[!, y]; color = COL_ARM["mtd"])
-        scatter!(ax, m.ttp_rmst, m[!, y]; color = COL_ARM["mtd"], marker = :diamond, markersize = 6)
+    for a in AT                                           # medians on top of both clouds
+        x = Float64.(pat[!, "benefit_$a"]); y = Float64.(pat[!, "fc_$(stat)_$a"])
+        ok = isfinite.(x) .& isfinite.(y) .& (y .> 0); any(ok) || continue
+        scatter!(ax, [median(x[ok])], [median(y[ok])]; color = COL_ARM[a], markersize = 7,
+                 strokecolor = :black, strokewidth = 0.6)
     end
     return fig
 end
 
-savepanel(tradeoff_panel("full", :resD0_med, :resD0_q25, :resD0_q75; ylabel = LABELS[:resclones]), NAME, "a")
-savepanel(tradeoff_panel("partial", :resD0_med, :resD0_q25, :resD0_q75; ylabel = LABELS[:resclones]), NAME, "b")
-savepanel(tradeoff_panel("full", :B_med, :B_q25, :B_q75; ylabel = LABELS[:B]), NAME, "c")
-
-# ── d, e: gain vs level across competition and resistance rates ──────────────
-function gain_panel(kind, cohorts, labels)
-    fig = panel(); ax = Axis(fig[1, 1]; xlabel = LABELS[:level], ylabel = LABELS[:gain])
-    hlines!(ax, [0.0]; color = :grey70, linestyle = :dot, linewidth = 0.8)
-    cols = shades(COL_ARM[kind], length(cohorts))
-    for (k, (c, label)) in enumerate(zip(cohorts, labels))
-        g = sort(tr[(tr.cohort .== c) .& (tr.kind .== kind), :], :level); nrow(g) == 0 && continue
-        x = g.level .+ (k - (length(cohorts) + 1) / 2) * 0.008
-        lines!(ax, x, g.gain_med; color = cols[k], label)
-        errorbars!(ax, x, g.gain_med, g.gain_med .- g.gain_lo, g.gain_hi .- g.gain_med; color = cols[k])
-        scatter!(ax, x, g.gain_med; color = cols[k])
+for (stats, source, letters) in ((SFS_STATS, "SFS", ["c", "d", "e", "f"]), (CSD_STATS, "CSD", ["g", "h", "i", "j"]))
+    for (stat, q, p) in zip(stats, Q_LABELS, letters)
+        savepanel(tradeoff_panel(stat, q, source), NAME, p)
     end
-    toplegend(fig, ax; nbanks = 2)
+end
+
+# ── k, l: parameter importance (PRCC) ─────────────────────────────────────────
+"Heatmap of the PRCC of the parameters (columns) with `targets` (rows), values written in the cells."
+function prcc_panel(targets, labels; w = PANEL_MM[1], h = 45, split = nothing)
+    M = [(d = prcc[(prcc.parameter .== p) .& (prcc.target .== t), :]; nrow(d) == 0 ? NaN : Float64(first(d.rho)))
+         for p in PARAMS, t in targets]
+    fig = panel(; w, h)
+    ax = Axis(fig[1, 1]; xticks = (1:length(PARAMS), [PARAM_NAME[p] for p in PARAMS]),
+              yticks = (1:length(targets), labels), xticksize = 0, yticksize = 0)
+    hm = heatmap!(ax, 1:length(PARAMS), 1:length(targets), M; colormap = :RdBu, colorrange = (-1, 1), nan_color = :white)
+    for i in eachindex(PARAMS), j in eachindex(targets)
+        isfinite(M[i, j]) || continue
+        text!(ax, i, j; text = string(round(M[i, j]; digits = 2)), align = (:center, :center), fontsize = 6,
+              color = abs(M[i, j]) > 0.6 ? :white : :black)
+    end
+    split === nothing || hlines!(ax, [split + 0.5]; color = :black, linewidth = 0.8)
+    ylims!(ax, length(targets) + 0.5, 0.5)                   # reversed: first target on top
+    Colorbar(fig[1, 2], hm; label = "PRCC")
     return fig
 end
 
-const FK_COHORTS = (["fK0.5", "fK0.7", "full", "fK0.9"], [rich("N/K = ", s) for s in ("0.5", "0.7", "0.8", "0.9")])
-const NU_COHORTS = (["nu1e-5", "full", "nu1e-3"], [rich("ν = 10", superscript(e)) for e in ("−5", "−4", "−3")])
+savepanel(prcc_panel(["ttp_mtd", "ttp_hol", "ttp_mod", "benefit_hol", "benefit_mod"],
+                     ["TTP, MTD", "TTP, holidays", "TTP, modulation", "Gain, holidays", "Gain, modulation"];
+                     w = 60, h = 35, split = 3), NAME, "k")
 
-for kind in KINDS
-    savepanel(gain_panel(kind, FK_COHORTS...), NAME, "d_$kind")
-    savepanel(gain_panel(kind, NU_COHORTS...), NAME, "e_$kind")
+const DIV_LABELS = [[hill_label(q, "SFS") for q in Q_LABELS]; [hill_label(q, "CSD") for q in Q_LABELS]]
+for a in ARMS
+    savepanel(prcc_panel(["end_$(s)_$a" for s in [SFS_STATS; CSD_STATS]], DIV_LABELS; split = 4), NAME, "l_$a")
+end
+for a in AT
+    savepanel(prcc_panel(["fc_$(s)_$a" for s in [SFS_STATS; CSD_STATS]], DIV_LABELS; split = 4), NAME, "l_fc_$a")
 end
 
 # ── legend ────────────────────────────────────────────────────────────────────
 fig = panel(; w = 90, h = 8)
-Legend(fig[1, 1], [MarkerElement(marker = :diamond, color = COL_ARM["mtd"], markersize = 6);
-                   [[LineElement(color = COL_ARM[k]), MarkerElement(marker = :circle, color = COL_ARM[k], markersize = 4)]
-                    for k in KINDS]],
-       [ARM_NAME["mtd"]; [ARM_NAME[k] for k in KINDS]]; orientation = :horizontal, labelsize = 7)
+Legend(fig[1, 1], [MarkerElement(marker = :circle, color = COL_ARM[a], markersize = 5) for a in ARMS],
+       [ARM_NAME[a] for a in ARMS]; orientation = :horizontal, labelsize = 7)
 savepanel(fig, NAME, "legend")

@@ -18,7 +18,9 @@ runs("paths") && @testset "paths" begin
 end
 
 runs("registry") && @testset "registry" begin
-    @test Set(keys(BLOCKS)) == Set(["01_dynamics", "02_tradeoff", "03_sensitivity", "04_trial", "05_metronomic", "06_cost", "07_validation"])
+    @test Set(keys(BLOCKS)) == Set(["01_dynamics", "02_tradeoff", "03_sensitivity", "04_trial", "05_metronomic", "06_cost", "07_validation", "08_stabilising"])
+    s8 = only(filter(c -> c.name == "neutral", BLOCKS["08_stabilising"])); s1 = only(filter(c -> c.name == "neutral", BLOCKS["01_dynamics"]))
+    @test s8.key == s1.key && tumour_seed(s8, 5) == tumour_seed(s1, 5) && [a.id for a in s8.arms] == ["mod", "mod_0.5", "mod_1.0"] && all(a.heavy == :fine for a in s8.arms)
     f1 = only(filter(c -> c.name == "full", BLOCKS["01_dynamics"])); f2 = only(filter(c -> c.name == "full", BLOCKS["02_tradeoff"]))
     @test f1.key == f2.key && tumour_seed(f1, 7) == tumour_seed(f2, 7) && f2.n == 300 && f1.fK == 0.8
     @test [a.id for a in f1.arms] == ["single", "mtd", "hol", "mod"]
@@ -119,6 +121,19 @@ runs("grid records at exact times") && @testset "grid records at exact times" be
     @test length(g) == 11 && all(abs(h.t_rel - h.idx) < 1e-6 for h in g)
 end
 
+runs("fine grid records") && @testset "fine grid records" begin
+    p = (nu = 0.0, alpha = 1.0, fK = 0.0, cost = 0.0, d0 = D0)
+    pop = simulate!(initialize_population(1), growth_block(p, 1000), Xoshiro(1)); t0 = pop.t
+    rec = run_arm(pop, Arm("mod", :mod, 0.8, 8.0, :fine), p, 1000, UInt64(7), t0,
+                  (block = "x", cohort = "c", tumour = 1); arm_index = 1)
+    g = [h for h in rec["heavy"] if h.tag == "fine"]
+    want = [t for t in HEAVY_FINE if t <= 8.0]
+    @test [h.t_rel for h in g] ≈ want atol = 1e-6
+    @test [h.idx for h in g] == round.(Int, 100want)
+    @test any(h -> h.tag == "blockend" && h.idx == 1, rec["heavy"]) && rec["heavy"][end].tag == "end"
+    @test all(isinteger(t / COUNT_EVERY_FINE) for t in HEAVY_FINE) && [c.t_rel for c in rec["counts"]][1:4] ≈ [0.0, 0.25, 0.5, 0.75]
+end
+
 runs("de novo resistance counts new lineages") && @testset "de novo resistance counts new lineages" begin
     p = (nu = 2e-2, alpha = 0.0, fK = 0.8, cost = 0.0, d0 = D0)
     pop = simulate!(initialize_population(1), growth_block(p, 2000), Xoshiro(3)); t_det = pop.t
@@ -209,6 +224,14 @@ runs("theory") && @testset "theory" begin
     r = logbin_ranges(1000); @test r.k ≈ logbin(ones(1000)).k && r.lo[1] == 1 && r.hi[end] == 1000
     q = cyclic_path(; ndet = 10^4, fK = 0.8, level = 0.1, ncycles = 1)          # single round
     @test path_N(q, path_time(q, 1, "lower")) ≈ 1000 && path_N(q, path_time(q, 1, "upper")) ≈ 10^4
+    s = stabilising_path(; ndet = 10^4, fK = 0.8, level = 0.8, tau = 10.0); st = stab_times(s)
+    @test path_N(s, st.t_det) ≈ 10^4 && path_N(s, st.t_hold) ≈ 8000
+    @test path_N(s, st.t_hold + 7.0) ≈ 8000 rtol = 1e-9
+    new = sfs_master(s, st.t_hold + 10.0, lo, hi; s0 = st.t_hold, s1 = st.t_hold + 10.0)
+    @test sum(new) ≈ 2MU * 8000 * log(1 + 10.0) rtol = 0.01                       # plateau law
+    @test new[1] ≈ 2MU * 8000 * 10 / 11 rtol = 0.01                              # singletons
+    s1 = stabilising_path(; ndet = 10^4, fK = 0.8, level = 1.0, tau = 1.0); st1 = stab_times(s1)
+    @test st1.t_hold == st1.t_det && length(s1.phases) == 2
 end
 
 runs("regrowth adds growth records") && @testset "regrowth adds growth records" begin
@@ -275,6 +298,10 @@ runs("summaries on test data") && @testset "summaries on test data" begin
     @test all(g.t[end] == TMAX / 5 for g in groupby(km, [:cohort, :arm]))     # curves run to the follow-up
     make_trial("00_test_04_trial"; within_block = "00_test_01_dynamics")
     t = CSV.read(joinpath(procdir("00_test_04_trial"), "trial.csv"), DataFrame); @test nrow(t) == 3
+    @test all(c -> c in names(t), ["end_S_mtd", "end_res_D0_mod", "fc_D1n_hol", "fc_res_Dinf_mod"])
+    @test t.fc_S_hol ≈ t.end_S_hol ./ t.end_S_mtd
+    pr = CSV.read(joinpath(procdir("00_test_04_trial"), "trial_prcc.csv"), DataFrame)
+    @test Set(pr.parameter) == Set(["log10_nu", "alpha", "fK"]) && all(x -> isnan(x) || -1 <= x <= 1, pr.rho)
     cr = CSV.read(joinpath(procdir("00_test_04_trial"), "trial_cor.csv"), DataFrame)
     @test all(x -> isnan(x) || -1 <= x <= 1, cr.rho) && Set(cr.setting) ⊆ Set(["within", "across", "partial"])
     @test isfile(joinpath(procdir("00_test_04_trial"), "trial_policy.csv"))

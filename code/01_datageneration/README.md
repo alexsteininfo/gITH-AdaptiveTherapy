@@ -22,6 +22,7 @@ WORKERS=32 JULIA=/path/to/julia bash code/01_datageneration/run_part2.sh   # clu
 TEST=1 bash code/01_datageneration/run_part1.sh          # smoke test (N_det = 10^4, 3 tumours)
 bash code/01_datageneration/run_statistics.sh [block …]  # redo snapshots/samples tables from raw data
 bash code/01_datageneration/run_part1_growth.sh          # add untreated records at 0.5 N_det to a finished Part 1
+bash code/01_datageneration/run_stabilising.sh           # stabilising AT at fine time resolution (block 08, Fig 4)
 ```
 
 Each bash script simulates its blocks (`WORKERS` worker processes, default 12) and then runs the
@@ -72,20 +73,21 @@ The scans are the actual object: which containment rule works best, not a copy o
 | # | block | cohort | $\nu$ | $\alpha$ | $f_K$ | tumours | arms | $t_\text{max}$ | purpose | CPU h |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `01_dynamics` | `neutral` | 0 | – | 0.8 | 500 | single, hol, mod | 40 | Figs 2–3: neutral dynamics | 8 |
-| 2 | | `full` | $10^{-4}$ | 0 | 0.8 | 500 | single, mtd, hol, mod | 250 | Figs 1, 2, 4; within-cohort prediction (Fig 6) | 10 |
+| 2 | | `full` | $10^{-4}$ | 0 | 0.8 | 500 | single, mtd, hol, mod | 250 | Figs 1, 2, 4; within-cohort prediction (Supp 12) | 10 |
 | 3 | | `partial` | $10^{-4}$ | 0.006 | 0.8 | 500 | single, mtd, hol, mod | 250 | Fig 4 | 12 |
 | 4 | | `weak` | $10^{-4}$ | 0.8 | 0.8 | 500 | single, mtd, hol, mod | 60 | Fig 2 | 11 |
-| 5 | `02_tradeoff` | `full` (tumours 1–300 of #2) | $10^{-4}$ | 0 | 0.8 | 300 | mtd, hol_L ×5, mod_L ×6 | 250 | Fig 5: trade-off curve | 28 |
-| 6 | | `partial` (tumours 1–300 of #3) | $10^{-4}$ | 0.006 | 0.8 | 300 | same | 250 | Fig 5 | 29 |
-| 7 | `03_sensitivity` | `fK0.5` | $10^{-4}$ | 0 | 0.5 | 200 | same | 250 | Fig 5: competition | 11 |
-| 8 | | `fK0.7` | $10^{-4}$ | 0 | 0.7 | 200 | same | 250 | Fig 5 | 14 |
-| 9 | | `fK0.9` | $10^{-4}$ | 0 | 0.9 | 200 | same | 250 | Fig 5 | 28 |
-| 10 | | `nu1e-5` | $10^{-5}$ | 0 | 0.8 | 200 | same | 250 | Fig 5: rare resistance | 33 |
-| 11 | | `nu1e-3` | $10^{-3}$ | 0 | 0.8 | 200 | same | 250 | Fig 5: frequent resistance | 8 |
-| 12 | `04_trial` | `trial` | log-uniform $10^{-5}$–$10^{-3}$ | 0–0.006 | 0.5–0.9 | 500 (Latin hypercube) | mtd, hol, mod | 250 | Fig 6: does diversity predict course and AT benefit? | 9 |
+| 5 | `02_tradeoff` | `full` (tumours 1–300 of #2) | $10^{-4}$ | 0 | 0.8 | 300 | mtd, hol_L ×5, mod_L ×6 | 250 | Supp 11: trade-off curve | 28 |
+| 6 | | `partial` (tumours 1–300 of #3) | $10^{-4}$ | 0.006 | 0.8 | 300 | same | 250 | Supp 11 | 29 |
+| 7 | `03_sensitivity` | `fK0.5` | $10^{-4}$ | 0 | 0.5 | 200 | same | 250 | Supp 11: competition | 11 |
+| 8 | | `fK0.7` | $10^{-4}$ | 0 | 0.7 | 200 | same | 250 | Supp 11 | 14 |
+| 9 | | `fK0.9` | $10^{-4}$ | 0 | 0.9 | 200 | same | 250 | Supp 11 | 28 |
+| 10 | | `nu1e-5` | $10^{-5}$ | 0 | 0.8 | 200 | same | 250 | Supp 11: rare resistance | 33 |
+| 11 | | `nu1e-3` | $10^{-3}$ | 0 | 0.8 | 200 | same | 250 | Supp 11: frequent resistance | 8 |
+| 12 | `04_trial` | `trial` | log-uniform $10^{-5}$–$10^{-3}$ | 0–0.006 | 0.5–0.9 | 500 (Latin hypercube) | mtd, hol, mod | 250 | Fig 5: virtual trial (paired arms, parameter importance); Supp 12: does diversity at diagnosis predict course and AT benefit? | 9 |
 | 13 | `05_metronomic` | `neutral`, `full` (same tumours as #1, #2) | | | 0.8 | 500 each | met | 40 / 250 | Fig 1, Supp 2 | 7 |
 | 14 | `06_cost` | `cost0`, `cost0.02` | $10^{-4}$ | Beta(1,4), min rule; cost $\Delta s=-c(1-\alpha)$, $c\in\{0, 0.02\}$ (resistant capacity $K(1-2c)$ must exceed $N_\text{prog}=0.9K$; $c=0.05$ never progresses) | 0.8 | 300 each | single, mtd, hol, mod, mod_1.0 | 250 | Supp 3: cost of resistance | 30 |
 | 15 | `07_validation` | `sfs_pb`, `sfs_bd`, `ld` | 0 / 0 / $10^{-3}$ | – / – / 0 | no competition ($d_0=0$ for `sfs_pb`) | 200 each, $N_\text{det}=10^5$ | growth only | – | Supp 1: checks vs theory | < 1 |
+| 16 | `08_stabilising` | `neutral`, `full`, `partial`, `weak` (tumours 1–200 of #1–#4) | as #1–#4 | as #1–#4 | 0.8 | 200 each | mod (neutral also mod_0.5, mod_1.0) | 40 | Fig 4: transient of the mutation load and the SFS front under stabilising AT; distributions at the times `HEAVY_FINE` (every 0.25 to t = 5, every 1 to 20, every 5 to 40; tag `fine`, idx = 100·t) and the untreated tumour at 0.8 $N_\text{det}$ | 3 |
 
 Rows with the same parameters share tumours (same seeds): #5 ⊂ #2, #6 ⊂ #3, #13 = #1/#2. All arms
 of a tumour start from the same detection-time population with the same random seed afterwards
@@ -103,4 +105,5 @@ cluster cores); disk ≈ 20–40 GB. Rows 5–11 (`run_part2.sh`, ≈ 150 CPU h)
 
 Key time points: growth at $0.1N_\text{det}$ (block 01); detection; end of each of the first 12
 treatment blocks (6 holiday cycles); every 10 time units; end. Scan arms and blocks 05–06:
-detection and end only. Trial: detection, end of the first full-dose phase, end.
+detection and end only. Trial: detection, end of the first full-dose phase, end. Block 08:
+growth at $0.8N_\text{det}$, detection, end of the reduction phase, the times `HEAVY_FINE`, end.

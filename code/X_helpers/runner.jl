@@ -30,14 +30,17 @@ function run_arm(pop0, a::Arm, p, ndet, seed, t_det, ids; arm_index::Integer, ex
     heavy = Any[]; counter = Ref(0)
     record!(q, tag, idx) = (counter[] += 1;
         push!(heavy, measure_heavy(q, ctx, derive_seed(seed, 2, arm_index, counter[]); tag, idx)))
-    # grid points t_det + j·HEAVY_EVERY, computed like the count times t_det + k·COUNT_EVERY
-    # (repeated addition drifts by an ulp and moves a record to the next count)
+    # grid points t_det + j·HEAVY_EVERY (:full, tag grid, idx = t) or t_det + HEAVY_FINE[j] (:fine, tag
+    # fine, idx = 100·t), computed like the count times t_det + k·COUNT_EVERY (repeated addition
+    # drifts by an ulp and moves a record to the next count)
+    grid = a.heavy == :full ? [j * HEAVY_EVERY for j in 1:ceil(Int, a.tmax / HEAVY_EVERY)] :
+           a.heavy == :fine ? HEAVY_FINE : Float64[]
+    tag, scale = a.heavy == :fine ? ("fine", 100) : ("grid", 1)
     j = Ref(1)
-    at_grid(q) = q.t >= t_det + j[] * HEAVY_EVERY - 1e-9
+    at_grid(q) = j[] <= length(grid) && q.t >= t_det + grid[j[]] - 1e-9
     function grid_heavy(q)
-        a.heavy == :full || return nothing
         if at_grid(q)
-            record!(q, "grid", round(Int, j[] * HEAVY_EVERY))
+            record!(q, tag, round(Int, scale * grid[j[]]))
             while at_grid(q); j[] += 1; end
         end
         return nothing
@@ -45,12 +48,13 @@ function run_arm(pop0, a::Arm, p, ndet, seed, t_det, ids; arm_index::Integer, ex
     stats = Any[:counts => q -> count_row(q, ctx), :heavy => grid_heavy]
     example && push!(stats, :clones => q -> clone_record(q))
     acc = MeasurementAccumulator(MeasurementSpec(trajectory_dt = TRAJ_DT,
-        triggers = [Every(a.heavy == :end ? COUNT_EVERY_SCAN : COUNT_EVERY)], stats = stats))
+        triggers = [Every(a.heavy == :end ? COUNT_EVERY_SCAN : a.heavy == :fine ? COUNT_EVERY_FINE : COUNT_EVERY)],
+        stats = stats))
     t0 = pop.t; i = 0
     while (b = next_block(sch, pop, i, t0)) !== nothing
         simulate!(pop, b, rng; accumulator = acc)
         i += 1
-        a.heavy == :full && i <= HEAVY_BLOCKS && record!(pop, "blockend", i)
+        a.heavy in (:full, :fine) && i <= HEAVY_BLOCKS && record!(pop, "blockend", i)
         a.heavy == :early && i == 1 && record!(pop, "early", 1)
     end
     record!(pop, "end", i)

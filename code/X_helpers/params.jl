@@ -14,8 +14,10 @@ const SAMPLE_N = [100, 1000, 10_000]
 const FMIN = [0.0, 0.01, 0.05]
 const HEAVY_BLOCKS = 12         # distributions at the end of the first 12 treatment blocks
 const HEAVY_EVERY = 10.0        # … and every 10 time units
+const HEAVY_FINE = [0.25:0.25:5; 6.0:1.0:20; 25.0:5.0:40]   # :fine policy: times after detection (block 08)
 const COUNT_EVERY = 1.0         # population counts every time unit
 const COUNT_EVERY_SCAN = 2.0    # … every 2 time units for scan arms
+const COUNT_EVERY_FINE = 0.25   # … every 0.25 for :fine arms (the heavy times HEAVY_FINE are multiples)
 const TRAJ_DT = 0.25
 const LEVEL_DEFAULT = Dict(:hol => 0.5, :mod => 0.8)
 const LEVELS_HOL = [0.5, 0.6, 0.7, 0.8, 0.9]
@@ -32,7 +34,8 @@ nprog(ndet, fK) = fK == 0 ? typemax(Int) : round(Int, (ndet + ndet / fK) / 2)
 One treatment arm. `kind ∈ (:single, :mtd, :hol, :mod, :met)`; `level` is the containment level as
 a fraction of the detection size (holidays: lower threshold; modulation: stable size); `heavy`
 selects when distributions are stored: `:full` (detection, first block ends, every
-`HEAVY_EVERY`, end), `:early` (detection, end of the first full-dose block, end), `:end`.
+`HEAVY_EVERY`, end), `:early` (detection, end of the first full-dose block, end), `:end`,
+`:fine` (detection, first block ends, at the times `HEAVY_FINE`, end; tag `fine`, idx = 100·t).
 """
 struct Arm
     id::String
@@ -44,7 +47,7 @@ end
 
 function arm(kind::Symbol; level = get(LEVEL_DEFAULT, kind, NaN), tmax = TMAX, heavy = :full)
     kind in (:single, :mtd, :hol, :mod, :met) || throw(ArgumentError("unknown arm kind $kind"))
-    heavy in (:full, :early, :end) || throw(ArgumentError("unknown heavy policy $heavy"))
+    heavy in (:full, :early, :end, :fine) || throw(ArgumentError("unknown heavy policy $heavy"))
     default = get(LEVEL_DEFAULT, kind, NaN)
     id = (isnan(level) || level == default) ? string(kind) : "$(kind)_$(level)"
     return Arm(id, kind, Float64(level), Float64(tmax), heavy)
@@ -118,6 +121,17 @@ const BLOCKS = Dict{String,Vector{Cohort}}(
         Cohort("sfs_pb", 13; nu = 0.0, alpha = 1.0, fK = 0.0, d0 = 0.0, n = 200, ndet = 10^5, arms = Arm[]),
         Cohort("sfs_bd", 14; nu = 0.0, alpha = 1.0, fK = 0.0, n = 200, ndet = 10^5, arms = Arm[]),
         Cohort("ld", 15; nu = 1e-3, alpha = 0.0, fK = 0.0, n = 200, ndet = 10^5, arms = Arm[]),
+    ],
+    # stabilising AT at fine time resolution (Fig 4): the first 200 tumours of the Part 1 cohorts
+    # (same seeds), untreated record at the stable size 0.8 N_det; the neutral cohort also at the
+    # stable sizes 0.5 and 1.0 N_det (no reduction phase)
+    "08_stabilising" => [
+        Cohort("neutral", 1; nu = 0.0, alpha = 1.0, n = 200, growth_heavy = [0.8],
+               arms = [arm(:mod; tmax = 40.0, heavy = :fine), arm(:mod; level = 0.5, tmax = 40.0, heavy = :fine),
+                       arm(:mod; level = 1.0, tmax = 40.0, heavy = :fine)]),
+        Cohort("full", 2; alpha = 0.0, n = 200, growth_heavy = [0.8], arms = [arm(:mod; tmax = 40.0, heavy = :fine)]),
+        Cohort("partial", 3; alpha = 0.006, n = 200, growth_heavy = [0.8], arms = [arm(:mod; tmax = 40.0, heavy = :fine)]),
+        Cohort("weak", 4; alpha = 0.8, n = 200, growth_heavy = [0.8], arms = [arm(:mod; tmax = 40.0, heavy = :fine)]),
     ],
 )
 

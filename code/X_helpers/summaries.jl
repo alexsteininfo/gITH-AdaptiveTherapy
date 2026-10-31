@@ -2,7 +2,7 @@
 #   make_sfs         sfs_mean.csv           log-binned mean SFS per cohort × arm × time point
 #   make_examples    example_traj.csv, example_clones.csv   (Figure 1)
 #   make_tradeoff    tradeoff.csv, km.csv   (containment scans; paired gains against MTD)
-#   make_trial       trial.csv, trial_cor.csv, trial_policy.csv, trial_km.csv
+#   make_trial       trial.csv, trial_prcc.csv, trial_cor.csv, trial_policy.csv, trial_km.csv
 #   make_powerlaw    powerlaw.csv           γ̂ over k_min and the KS choice (supplement)
 #   make_validation  validation_sfs.csv, validation_ld.csv
 
@@ -190,6 +190,10 @@ end
 
 const PREDICTORS = [:S, :D2n, :H1n, :gamma, :mean_burden, :var_burden]
 const ORACLE_ONLY = [:det_res_frac, :det_n_res, :det_largest]
+# Hill numbers q = 0, 1, 2, ∞ of the SFS (normalised frequencies) and of the resistant clones
+const END_STATS = [:S, :D1n, :D2n, :Dinfn, :res_D0, :res_D1, :res_D2, :res_Dinf]
+# trial parameters for the partial rank correlations: column name => values from the patient table
+const PRCC_PARAMS = ["log10_nu" => p -> log10.(p.nu), "alpha" => p -> Float64.(p.alpha), "fK" => p -> Float64.(p.fK)]
 
 "Spearman ρ with t-approximation p and bootstrap 95% CI (NaN if fewer than 6 complete pairs)."
 function spearman(x, y; rng = StableRNG(2))
@@ -215,8 +219,9 @@ end
 """
     make_trial(block; within_block = "01_dynamics")
 
-Per-patient table, correlations of diversity at diagnosis (and early on treatment) with time to
-progression and AT benefit — within one parameter set (`within_block`, cohort `full`), across the
+Per-patient table (with diversity at the end of each arm and its fold change AT / MTD), partial
+rank correlations of the parameters with the outcomes (`trial_prcc`), correlations of diversity at
+diagnosis (and early on treatment) with time to progression and AT benefit — within one parameter set (`within_block`, cohort `full`), across the
 trial, and partial (controlling for log ν, α, fK) — plus simple treatment-selection policies.
 """
 function make_trial(block::AbstractString; within_block::AbstractString = "01_dynamics")
@@ -233,7 +238,19 @@ function make_trial(block::AbstractString; within_block::AbstractString = "01_dy
         pat[!, "oracle_$p"] = [first(det[det.tumour .== t, p]) for t in pat.tumour]
         pat[!, "sample_$p"] = [(v = detm[detm.tumour .== t, p]; isempty(v) ? NaN : first(v)) for t in pat.tumour]
     end
+    # diversity at the end of each arm (progression, extinction or follow-up) and the paired fold
+    # change AT / MTD (normalising both arms by the patient's value at detection cancels)
+    fin = s[s.tag .== "end", :]
+    for a in arms, p in END_STATS
+        e = fin[fin.arm .== a, :]
+        pat[!, "end_$(p)_$a"] = [(v = e[e.tumour .== t, p]; isempty(v) ? NaN : Float64(coalesce(first(v), NaN)))
+                                 for t in pat.tumour]
+    end
+    for a in ("hol", "mod"), p in END_STATS
+        pat[!, "fc_$(p)_$a"] = pat[!, "end_$(p)_$a"] ./ pat[!, "end_$(p)_mtd"]
+    end
     CSV.write(joinpath(procdir(block), "trial.csv"), pat)
+    CSV.write(joinpath(procdir(block), "trial_prcc.csv"), trial_prcc(pat))
 
     targets = ["ttp_mtd", "ttp_hol", "ttp_mod", "benefit_hol", "benefit_mod"]
     Z = hcat(log10.(pat.nu), pat.alpha, pat.fK)
@@ -293,6 +310,27 @@ function make_trial(block::AbstractString; within_block::AbstractString = "01_dy
     end
     CSV.write(joinpath(procdir(block), "trial_km.csv"), DataFrame(km_rows))
     return pat
+end
+
+"""
+    trial_prcc(pat)
+
+Partial rank correlation coefficients (PRCC) of each trial parameter (log ν, α, f_K) with the time
+to progression and gain per arm, the diversity at the end of each arm (`end_*`) and its fold change
+AT / MTD (`fc_*`), controlling for the other two parameters; bootstrap 95% CI.
+"""
+function trial_prcc(pat)
+    X = [name => f(pat) for (name, f) in PRCC_PARAMS]
+    targets = [["ttp_mtd", "ttp_hol", "ttp_mod", "benefit_hol", "benefit_mod"];
+               ["end_$(p)_$a" for a in ("mtd", "hol", "mod") for p in END_STATS];
+               ["fc_$(p)_$a" for a in ("hol", "mod") for p in END_STATS]]
+    rows = NamedTuple[]
+    for target in targets, (j, (name, x)) in enumerate(X)
+        Z = hcat([last(X[i]) for i in eachindex(X) if i != j]...)
+        r = partial_spearman(x, Float64.(pat[!, target]), Z)
+        push!(rows, (parameter = name, target = target, rho = r.rho, p = r.p, lo = r.lo, hi = r.hi, n_patients = r.n))
+    end
+    return DataFrame(rows)
 end
 
 """
